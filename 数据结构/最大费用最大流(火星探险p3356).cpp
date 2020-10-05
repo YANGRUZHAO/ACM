@@ -1,7 +1,9 @@
-///链接：https://www.luogu.com.cn/problem/P4012
-/*题意: 一张p*q图，现在有a个起点，b个终点，其中图中还有一些有价值的植物，现在问你在让起点到终点的路径中，可以获得的最大价值是多少。
-  题解：最大费用最大流。感觉更像是https://www.luogu.com.cn/problem/P3356的简化版；
-        但是此题的输入比较恶心，一度让人看不懂。同时相比火星探险，这题是网格边上有权值，所以不需要进行拆点操作。
+///链接：https://www.luogu.com.cn/problem/P3356
+/*题意: 一张p*q图，现在有n个汽车在(1,1)点，要去到(n,n)点，同时图中有障碍物，和石块，气车只能向下和向右走，现在要求
+        能到达(n,n)点的汽车最多，并且收集的石块数量最多。
+  题解：最大费用最大流，有石块的地方要建立两条边，拆点建图；
+        注意车子数量为n，所以应该要弄个起始点来限制，一开始因为没弄起始点限制，车子数量为n，导致错误；
+        同时，注意98行和96行的return，一条路径都dfs完了，那就没有必要在到这条路径上dfs了。一定记得return。
 */
 
 #include<iostream>
@@ -28,7 +30,6 @@ int incf[M], pre[M], v[M];
 ll ans;
 int n, k, tot, s, t, maxflow,m;
 int G[N][N],q,p,T;
-int a,b,Q,P;
 
 void add(int x, int y, int z, int c) {
 	// 正向边，初始容量z，单位费用c
@@ -77,7 +78,7 @@ void update() {
 	//printf("%d %d sd\n ",d[t],incf[t]);
 }
 int get_id(int x,int y){
-    return (x-1)*Q+y;
+    return (x - 1) * p + y;
 }
 void dfs(int x,int far,int v){
    for(int i = head[x + T]; i; i = Next[i]){
@@ -98,39 +99,48 @@ void dfs(int x,int far,int v){
    }
 }
 int main() {
-        tot = 1;
-        scanf("%d%d%d%d",&a,&b,&P,&Q);
-        P++,Q++;s = 0; t = P * Q + 1;
-        for(int i=1;i<=P;i++)
-          for(int j=1;j<Q;j++){
-                int x = read(),id1=get_id(i,j),id2 = id1 + 1;
-                add(id1,id2,1,-x);
-                add(id1,id2,inf,0);
+        n = read();  tot = 1;
+        p = read(); q = read();
+        t = p * q * 2 + 1;
+        s = 0; T = p * q;
+        add(s,get_id(1,1),n,0);
+        add(get_id(q,p) + T,t,n ,0);
+        for(int i = 1; i <= q; i ++) {
+            for(int j = 1; j <= p; j ++){
+                G[i][j] = read();
+                if(G[i][j] == 1) continue;
+                if(G[i][j] == 0)
+                add(get_id(i,j),get_id(i,j) + T,inf,0);
+                else {
+                    add(get_id(i,j),get_id(i,j) + T,1,-1);
+                    add(get_id(i,j),get_id(i,j) + T,inf,0);
+                }
             }
-        for(int j=1;j<=Q;j++)
-          for(int i=1;i<P;i++){
-                int x = read(),id1=get_id(i,j),id2 = id1 + Q;
-                add(id1,id2,1,-x);
-                add(id1,id2,inf,0);
+        }
+        for(int i = 1; i <= q; i ++){
+            for(int j = 1; j <= p; j ++){
+                if(G[i][j] == 1) continue;
+                int x = i + 1,y = j;
+                if(x <= q && G[x][y] != 1){
+                    int id1 = get_id(i,j) + T,id2 = get_id(x,y);
+                    add(id1,id2,inf,0);
+                }
+                x = i,y = j + 1;
+                if(y <= p && G[x][y] != 1){
+                    int id1 = get_id(i,j) + T,id2 = get_id(x,y);
+                    add(id1,id2,inf,0);
+                }
             }
-        for(int i=1;i<=a;i++){
-              int k,x,y;
-              scanf("%d%d%d",&k,&x,&y);
-              x++,y++;
-              add(s,get_id(x,y),k,0);
-          }
-        for(int i=1;i<=b;i++)
-          {
-              int k,x,y;
-              scanf("%d%d%d",&k,&x,&y);
-              x++,y++;
-              add(get_id(x,y),t,k,0);
-          }
+        }
+
         maxflow = ans = 0;
         while(spfa()){
          update();
          //printf("%lld %lld\n",maxflow,ans);
         }
-        printf("%lld\n",-ans);
-
+      //  printf("%lld\n",-ans);
+        for(int i = 1; i <= maxflow; i ++){
+        //    printf("i = %d ：\n",i);
+            dfs(1,0,i);
+        }
 }

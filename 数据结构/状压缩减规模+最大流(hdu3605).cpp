@@ -1,6 +1,15 @@
-///链接：http://poj.org/problem?id=3281
-/*题意: n头牛，m菜，k饮料，菜和饮料一份只能给一头牛，每头牛有固定食谱只吃喝上面有的。每头牛要么不吃不喝，要么有吃有喝，问最多能有几头牛有吃有喝？
-  题解：牛拆点拆成in和out，in和out连边，食物向可以吃他的牛连边，牛向所有可以喝的饮料连边，源点向所有食物连边，饮料向汇点连边，所有边权都为1，跑最大流。
+///链接：http://acm.hdu.edu.cn/showproblem.php?pid=3605
+/*题意: n个人要迁徙到m个星球上去，同时每个人而言，m个星球中有部分星球是一定不能去的。见样例，问这n
+  个人是否都能迁徙到m个星球上去；
+  题解：1，傻逼最大流，星球连t，边容量为星球容量，每个人连适合住的星球，容量为1，每个人连起点s，容量为1；
+  好，超时；大傻逼；
+  看数据范围1<=n<=100000,1<=m<=10;
+  肯定超时了，所以我们考虑如何缩减点的数量;注意到最多只有10个星球，所以也就是说对于星球选择的状态
+  状态最多只有1<<m种;也就是1024种;
+  所以我们可以考虑通过星球来状压他，使其减少点数;
+  状压之后，我们应该把s和每个状态相连接，容量为此状态的人数，每个状态和星球连接，容量为此状态的人数；
+  每个星球和t连接，容量为星球的容量，最后在跑最大流即可；
+  所以，我们在做题的过程中，超时，要多考虑一下怎么把缩减规模，把同样的规模缩减掉；
 */
 
 #include"stdio.h"
@@ -30,7 +39,7 @@ inline int read(){
     return s * w;
 }
 const ll mod = 998244353;
-const int N = 500010,M = 500010;
+const int N = 500010,M = 1200010;
 const int inf = 1 << 29;
 const int maxn=1e5;
 
@@ -38,16 +47,16 @@ int n,m,t,s,tot;
 ll maxflow;
 int head[N],ver[M],Next[M],d[N];
 ll edge[M];
-char str[210][210];
+int cnt[2010];
 queue<int> q;
 
-void add(int x,int y,ll z){
+void add(int x,int y,int z){
     ver[++ tot] = y; Next[tot] = head[x];  edge[tot] = z; head[x] = tot;
     ver[++ tot] = x; edge[tot] = 0; Next[tot] = head[y]; head[y] = tot;
 }
 
 bool bfs(){
-    for(int i = 0; i <= t; i ++) d[i] = 0;
+    memset(d,0,sizeof(d));
     while(q.size())q.pop();
     q.push(s); d[s] = 1;
     while(q.size()){
@@ -61,7 +70,7 @@ bool bfs(){
     return 0;
 }
 
-ll dinic(int x,ll flow){
+int dinic(int x,ll flow){
     if(x == t) return flow;
     ll rest = flow,k;
     for(int i = head[x]; i && rest; i = Next[i]){
@@ -77,42 +86,39 @@ ll dinic(int x,ll flow){
 }
 int main(){
     while(~scanf("%d",&n)){
-        int a = read(); int b = read();memset(head,0,sizeof(head));
-    t = 2 * n + a + b + 1;s = t + 1;  tot = 1;maxflow = 0;
-        for(int i = 1; i <= n; i ++){
-            add(i,i + n,1);
-            //add(s,i,1); add(i + a + b,t,1);
+       m = read(); memset(head,0,sizeof(head));
+       s = 0; t = 2000 + m + 1;  tot = 1;maxflow = 0;
+       memset(cnt,0,sizeof(cnt));
+        for(int i=1;i<=n;i++){
+				int tmp=0,fg;
+				for(int j=1;j<=m;j++){
+					int x = read();
+                    if(x == 1)
+						tmp|=(1<<(j-1));
+					}
+
+				cnt[tmp]++;
         }
-        for(int i = 1; i <= a; i ++){
+        for(int i = 1; i <= 2000; i ++){
+            if(cnt[i] == 0) continue;
+            add(s,i,cnt[i]);
+            for(int j = 1; j <= m; j ++){
+                if((i & (1LL << (j - 1)))){
+                    add(i,2000 + j,cnt[i]);
+                }
+            }
+        }
+        for(int  i = 1; i <= m; i ++){
             int x = read();
-            add(s,i + 2 * n,x);
-        }
-        for(int i = 1; i <= b; i ++){
-            int y = read();
-            add(i + 2 * n + a,t,y);
+            add(i + 2000,t,x);
         }
 
-        for(int i = 1; i <= n; i ++){
-            scanf("%s",str[i] + 1);
-            for(int j = 1; j <= a; j ++){
-                if(str[i][j] == 'Y'){
-                    add(j + 2 * n,i,1);
-                }
-            }
-        }
-        for(int i = 1; i <= n; i ++){
-            scanf("%s",str[i] + 1);
-            for(int j = 1; j <= b; j ++){
-                if(str[i][j] == 'Y'){
-                    add(i + n,j + 2 * n + a,1);
-                }
-            }
-        }
         ll flow = 0;
         while(bfs())
             while(flow = dinic(s,inf)) maxflow += flow;
-      //  printf("maxflow = %lld\n",maxflow);
-        printf("%lld\n",maxflow);
+     //   printf("maxflow = %lld\n",maxflow);
+        if(maxflow == n) printf("YES\n");
+        else printf("NO\n");
     }
 }
 /*
